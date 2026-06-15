@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
           projectId: projectId || "",
           kind: "storage",
           pipelineId: PIPELINE_ID,
+          txnAmount: String(txnAmount),
           label: `${siteConfig.business.name} storage`,
         },
       },
