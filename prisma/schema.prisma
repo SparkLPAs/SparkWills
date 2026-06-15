@@ -1,0 +1,166 @@
+// Protective Property Trust Will — Prisma schema
+//
+// Local dev uses SQLite, which does not support native Prisma `enum`s.
+// Enum-typed fields from the brief are therefore `String` columns whose
+// allowed values are defined as TypeScript unions in lib/constants.ts.
+// For production, switch provider to "postgresql" and (optionally) restore enums.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Local dev = sqlite. PRODUCTION = postgresql (Vercel filesystem is ephemeral,
+  // so SQLite can't run there). Flip with: node scripts/set-db.mjs postgres
+  // The schema is provider-agnostic (String columns, Json, no enums), so only this
+  // one line changes — see docs/DEPLOY.md.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Auth (NextAuth) ───────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+
+  // Billing / plan
+  plan             String    @default("free") // free | single | annual
+  planExpiresAt    DateTime?
+  stripeCustomerId String?   @unique
+
+  // Admin access (set via scripts/set-admin.mjs)
+  isAdmin          Boolean   @default(false)
+
+  projects WillProject[]
+  accounts Account[]
+  sessions Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────── Domain ───────────────────────────
+
+model WillProject {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title String @default("Our Protective Property Trust Wills")
+
+  // status: draft | review | compiled | executed | stored
+  status String @default("draft")
+
+  // coupleType: married | civil_partner | cohabiting
+  coupleType String?
+
+  // ownershipType: joint_tenants | tenants_in_common
+  ownershipType      String?
+  severanceRequired  Boolean @default(false)
+  severanceConfirmed Boolean @default(false)
+
+  // Wizard step the user last completed (drives the progress stepper / resume)
+  lastCompletedStep Int @default(0)
+
+  // All wizard data (person1, person2, property, trustConfig, beneficiaries,
+  // executors, trustees, guardians, bequests, funeralWishes, …) lives here.
+  // No DB-level default ({} is invalid for SQLite) — always set data: {} on create.
+  data Json
+
+  // Payment
+  paymentStatus         String  @default("unpaid") // unpaid | paid
+  stripePaymentIntentId String?
+  stripeSessionId       String?
+
+  // Optional paid storage add-on
+  storageRequested Boolean @default(false)
+
+  // Lifecycle timestamps for review reminders
+  compiledAt     DateTime?
+  lastReminderAt DateTime?
+
+  documents GeneratedDocument[]
+
+  @@index([userId])
+}
+
+model GeneratedDocument {
+  id        String   @id @default(cuid())
+  projectId String
+  project   WillProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // type: will_p1 | will_p2 | severance_notice | cover_sheet | signing_guide | storage_guide
+  type      String
+  version   Int      @default(1)
+  storageKey String  // S3 key in prod; local relative path under ./.storage in dev
+  checksum  String?
+  isDraft   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model StripeEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  type          String
+  processed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  payload       Json
+}
+
+// Lead capture for "expert consultation" requests (e.g. from the eligibility
+// gate when the DIY tool isn't a right fit).
+model ConsultationRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String?
+  source    String?  // e.g. eligibility | landing | dashboard
+  userId    String?
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([handled])
+}

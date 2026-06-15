@@ -1,0 +1,55 @@
+{
+  "businessName": "Hearthstone Wills",
+  "legalName": "Hearthstone Wills Ltd",
+  "shortName": "Hearthstone",
+  "contactEmail": "hello@hearthstonewills.co.uk",
+
+  "branding": {
+    "logoFilename": "hearthstone-logo.svg",
+    "monogram": "H",
+    "primaryColor": "#0b7285",
+    "surfaceColor": "#fbfaf7",
+    "fontPair": "classic"
+  },
+
+  "pricing": {
+    "singleLabel": "Single Will Pair",
+    "singlePrice": "£49",
+    "annualLabel": "Unlimited Annual",
+    "annualPrice": "£89"
+  },
+
+  "legal": {
+    "jurisdiction": "England & Wales",
+    "lawAsAt": "June 2026",
+    "customDisclaimer": "",
+    "isSolicitorFirm": false
+  },
+
+  "consultation": {
+    "signpost": "Our advisers can help. Book a consultation and we'll find the right option for you.",
+    "leadsEmail": "leads@hearthstonewills.co.uk"
+  },
+
+  "recommendedExecutor": {
+    "enabled": true,
+    "name": "Premier Solicitors (Bedford) Limited",
+    "address": "Premier House, Bedford",
+    "blurb": "Appointing the right executor is crucial to ensuring your wishes are carried out smoothly. Premier Solicitors offer professional, impartial, and efficient estate management.",
+    "benefits": [
+      "Expertise you can trust in estate administration.",
+      "Impartial and conflict-free, preventing family disputes.",
+      "Efficient probate handling with no unnecessary delays.",
+      "Relieving the burden of paperwork and tax filings from loved ones."
+    ]
+  },
+
+  "deployment": {
+    "domain": "wills.hearthstonewills.co.uk"
+  },
+
+  "meta": {
+    "title": "Hearthstone Wills | Protective Property Trust Wills",
+    "description": "Create a pair of Protective Property Trust Wills with Hearthstone Wills, for couples in England & Wales."
+  }
+}
