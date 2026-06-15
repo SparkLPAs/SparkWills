@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe, stripeConfigured } from "@/lib/stripe/stripe-server";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser } from "@/lib/auth/session";
+import { siteConfig } from "@/config/site.config";
+
+// Revenue Ops Dashboard pipeline this app's payments belong to.
+const PIPELINE_ID = "sparkwills";
 
 export async function POST(req: NextRequest) {
   const sessionUser = await getSessionUser();
@@ -32,6 +36,18 @@ export async function POST(req: NextRequest) {
   // added to the first invoice.
   const storagePriceId = process.env.STRIPE_PRICE_ID_STORAGE;
   const addStorage = Boolean(storageRequested) && !!storagePriceId;
+
+  // The will price only (excludes storage) — recorded as the "transaction" in the
+  // revenue dashboard, so a bundled first month of storage isn't double-counted.
+  const txnAmount =
+    Number(
+      String(
+        planType === "mirror"
+          ? siteConfig.pricing.mirror.price
+          : siteConfig.pricing.single.price,
+      ).replace(/[^0-9.]/g, ""),
+    ) || 0;
+  const productLabel = planType === "mirror" ? "Mirror wills" : "Single will";
 
   const user = await prisma.user.findUnique({ where: { id: sessionUser.id } });
   if (!user) {
@@ -74,6 +90,9 @@ export async function POST(req: NextRequest) {
       projectId: projectId || "",
       planType,
       storageRequested: addStorage ? "true" : "false",
+      pipelineId: PIPELINE_ID,
+      txnAmount: String(txnAmount),
+      label: productLabel,
     },
     ...(isSubscription && {
       subscription_data: {
@@ -81,6 +100,8 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           projectId: projectId || "",
           kind: "storage",
+          pipelineId: PIPELINE_ID,
+          label: `${siteConfig.business.name} storage`,
         },
       },
     }),
