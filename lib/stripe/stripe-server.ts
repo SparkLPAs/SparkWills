@@ -1,9 +1,10 @@
 import Stripe from "stripe";
 
-/** True when we're running on placeholder/stub Stripe keys (local dev). */
+/** True when a real Stripe secret key is set (standard `sk_` or restricted `rk_`). */
 export const stripeConfigured =
   !!process.env.STRIPE_SECRET_KEY &&
-  process.env.STRIPE_SECRET_KEY.startsWith("sk_") &&
+  (process.env.STRIPE_SECRET_KEY.startsWith("sk_") ||
+    process.env.STRIPE_SECRET_KEY.startsWith("rk_")) &&
   !process.env.STRIPE_SECRET_KEY.includes("stub");
 
 /** True when local stubs are enabled (no live external services). */
