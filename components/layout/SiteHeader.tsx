@@ -13,7 +13,13 @@ export function SiteHeader() {
             {siteConfig.business.name}
           </span>
         </Link>
-        <nav>
+        <nav className="flex items-center gap-5">
+          <Link
+            href="/consultation?source=header"
+            className="hidden text-sm text-navy-700 hover:text-navy-900 sm:inline"
+          >
+            Consultation
+          </Link>
           <AuthNav />
         </nav>
       </div>
