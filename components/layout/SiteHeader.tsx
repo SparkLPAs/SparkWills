@@ -13,12 +13,9 @@ export function SiteHeader() {
             {siteConfig.business.name}
           </span>
         </Link>
-        <nav className="flex items-center gap-5">
-          <Link
-            href="/consultation?source=header"
-            className="hidden text-sm text-navy-700 hover:text-navy-900 sm:inline"
-          >
-            Consultation
+        <nav className="flex items-center gap-3">
+          <Link href="/consultation?source=header" className="btn-secondary">
+            Contact Us
           </Link>
           <AuthNav />
         </nav>
