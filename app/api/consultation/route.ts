@@ -39,5 +39,27 @@ export async function POST(req: NextRequest) {
     `[consultation] New request ${request.id} from ${request.email} (source: ${request.source ?? "n/a"})`,
   );
 
+  // Best-effort: also send this lead into the internal CRM leads board.
+  try {
+    const crmUrl = process.env.CRM_LEADS_URL;
+    const crmSecret = process.env.LEADS_INBOUND_SECRET;
+    if (crmUrl && crmSecret) {
+      await fetch(crmUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${crmSecret}` },
+        body: JSON.stringify({
+          pipelineId: "sparkwills",
+          name: request.name,
+          email: request.email,
+          phone: request.phone,
+          source: request.source || "SparkWills consultation form",
+          message: request.message,
+        }),
+      });
+    }
+  } catch (err) {
+    console.error("[consultation] Failed to notify CRM:", err);
+  }
+
   return NextResponse.json({ ok: true });
 }
