@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { sendEmail } from "@/lib/email/email";
 import { documentsReadyEmail } from "@/lib/email/templates";
 import { settledStatusFor } from "@/lib/payments/checkout-outcome";
+import { enforceStorageIsCharged } from "@/lib/payments/storage-billing";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,13 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
         if (sub.metadata?.kind !== "storage" || !sub.metadata?.projectId) break;
+
+        // Wills can be given away; storage cannot. Strip any discount that
+        // would carry into future months of the storage subscription.
+        await enforceStorageIsCharged(sub.id).catch((err) => {
+          console.error("Could not check storage discounts on", sub.id, err);
+        });
+
         const isActive = ["active", "trialing"].includes(sub.status);
         await prisma.willProject.update({
           where: { id: sub.metadata.projectId },

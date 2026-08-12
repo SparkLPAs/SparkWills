@@ -121,6 +121,7 @@ export function PaymentGate({
 
       <p className="mt-4 text-center text-xs text-navy-500">
         Have a discount code? You can enter it on the next page, before paying.
+        {storage.enabled && " Codes apply to the will only, not to storage."}
       </p>
 
       <p className="mt-1 text-center text-xs text-navy-500">
