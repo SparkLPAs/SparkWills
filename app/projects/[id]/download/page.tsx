@@ -3,6 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { userCanAccessProject } from "@/lib/payments/check-access";
+import { settledStatusFor } from "@/lib/payments/checkout-outcome";
+import { grantsAccess } from "@/lib/constants";
 import { hydrateWizardData } from "@/lib/wizard/schema";
 import { documentsForProject, documentLabel } from "@/lib/pdf-generation/templates";
 import { compileProject } from "@/lib/documents/compile";
@@ -32,18 +34,20 @@ export default async function DownloadPage({
   if (
     searchParams.session_id &&
     stripeConfigured &&
-    project.paymentStatus !== "paid"
+    !grantsAccess(project.paymentStatus)
   ) {
     try {
       const s = await getStripe().checkout.sessions.retrieve(
         searchParams.session_id,
       );
-      const paid = s.payment_status === "paid" || s.status === "complete";
-      if (paid && s.metadata?.projectId === project.id) {
+      // A 100%-off promotion code settles as "no_payment_required", not "paid",
+      // so ask settledStatusFor rather than testing payment_status here.
+      const status = settledStatusFor(s);
+      if (status && s.metadata?.projectId === project.id) {
         project = await prisma.willProject.update({
           where: { id: project.id },
           data: {
-            paymentStatus: "paid",
+            paymentStatus: status,
             stripeSessionId: s.id,
             storageRequested: s.metadata?.storageRequested === "true",
           },

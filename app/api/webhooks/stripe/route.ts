@@ -4,8 +4,28 @@ import { getStripe } from "@/lib/stripe/stripe-server";
 import { prisma } from "@/lib/db/prisma";
 import { sendEmail } from "@/lib/email/email";
 import { documentsReadyEmail } from "@/lib/email/templates";
+import { settledStatusFor } from "@/lib/payments/checkout-outcome";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Rewrite a completed session's `txnAmount` metadata to the amount Stripe
+ * actually collected. It is set at session-creation time from list price, which
+ * is stale the moment a promotion code is applied at checkout — including a
+ * 100%-off code, where the real figure is 0.
+ */
+async function reconcileTxnAmount(session: Stripe.Checkout.Session) {
+  const actual = ((session.amount_total ?? 0) / 100).toString();
+  if (session.metadata?.txnAmount === actual) return;
+  try {
+    await getStripe().checkout.sessions.update(session.id, {
+      metadata: { ...(session.metadata || {}), txnAmount: actual },
+    });
+  } catch (err) {
+    // Non-fatal: access has already been granted, this only affects reporting.
+    console.error("Could not reconcile txnAmount for", session.id, err);
+  }
+}
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -49,7 +69,10 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.payment_status === "paid") {
+        // "paid" or, when a 100%-off promotion code covers the order,
+        // "no_payment_required" — the latter settles as "comped".
+        const settledStatus = settledStatusFor(session);
+        if (settledStatus) {
           const { userId, projectId, planType, storageRequested } =
             session.metadata || {};
           // Both will types (single / mirror) are one-off purchases that unlock
@@ -58,11 +81,18 @@ export async function POST(req: NextRequest) {
             await prisma.willProject.update({
               where: { id: projectId },
               data: {
-                paymentStatus: "paid",
+                paymentStatus: settledStatus,
                 stripeSessionId: session.id,
                 storageRequested: storageRequested === "true",
               },
             });
+
+            // The session's txnAmount metadata was set to list price before the
+            // customer had a chance to enter a discount code. Correct it to what
+            // was actually collected so the revenue dashboard doesn't book list
+            // price for a giveaway.
+            await reconcileTxnAmount(session);
+
             if (userId) {
               const u = await prisma.user.findUnique({ where: { id: userId } });
               if (u) {

@@ -26,8 +26,19 @@ export const DISCLAIMER_SHORT = siteConfig.legal.disclaimerShort;
 export const PLANS = ["free", "single", "annual"] as const;
 export type Plan = (typeof PLANS)[number];
 
-export const PAYMENT_STATUSES = ["unpaid", "paid"] as const;
+// "comped" = access granted at zero price — either a 100%-off Stripe promotion
+// code redeemed at checkout, or an admin grant from /admin. It unlocks documents
+// exactly like "paid", but is counted separately so revenue figures stay honest.
+export const PAYMENT_STATUSES = ["unpaid", "paid", "comped"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+/** Payment statuses that unlock a project's documents. */
+export const ACCESS_GRANTING_STATUSES = ["paid", "comped"] as const;
+
+/** Whether a project's payment status unlocks its documents. */
+export function grantsAccess(paymentStatus: string): boolean {
+  return (ACCESS_GRANTING_STATUSES as readonly string[]).includes(paymentStatus);
+}
 
 export const PROJECT_STATUSES = [
   "draft",

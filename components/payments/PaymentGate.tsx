@@ -120,6 +120,10 @@ export function PaymentGate({
       )}
 
       <p className="mt-4 text-center text-xs text-navy-500">
+        Have a discount code? You can enter it on the next page, before paying.
+      </p>
+
+      <p className="mt-1 text-center text-xs text-navy-500">
         Payments are processed securely by Stripe. We never store your card details.
       </p>
 

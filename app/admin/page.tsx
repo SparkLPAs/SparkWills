@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { getAdminUser } from "@/lib/auth/admin";
 import { prisma } from "@/lib/db/prisma";
 import { AdminLeads } from "@/components/admin/AdminLeads";
+import { AdminProjects } from "@/components/admin/AdminProjects";
 
 export const metadata = { title: "Admin" };
 
@@ -35,10 +36,12 @@ export default async function AdminPage() {
     singleUsers,
     totalProjects,
     paidProjects,
+    compedProjects,
     compiledProjects,
     totalLeads,
     openLeads,
     recentUsers,
+    recentProjects,
     leads,
   ] = await Promise.all([
     prisma.user.count(),
@@ -46,6 +49,7 @@ export default async function AdminPage() {
     prisma.user.count({ where: { plan: "single" } }),
     prisma.willProject.count(),
     prisma.willProject.count({ where: { paymentStatus: "paid" } }),
+    prisma.willProject.count({ where: { paymentStatus: "comped" } }),
     prisma.willProject.count({
       where: { status: { in: ["compiled", "executed", "stored"] } },
     }),
@@ -64,12 +68,25 @@ export default async function AdminPage() {
         _count: { select: { projects: true } },
       },
     }),
+    prisma.willProject.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        paymentStatus: true,
+        createdAt: true,
+        user: { select: { email: true } },
+      },
+    }),
     prisma.consultationRequest.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
   ]);
 
+  // Comped projects are deliberately excluded — they were given away at £0.
   const estRevenue =
     paidProjects * SINGLE_PRICE + annualUsers * ANNUAL_PRICE;
 
@@ -86,7 +103,11 @@ export default async function AdminPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Users" value={String(totalUsers)} sub={`${annualUsers} annual · ${singleUsers} single`} />
         <StatCard label="Projects" value={String(totalProjects)} sub={`${compiledProjects} compiled`} />
-        <StatCard label="Paid projects" value={String(paidProjects)} />
+        <StatCard
+          label="Paid projects"
+          value={String(paidProjects)}
+          sub={compedProjects > 0 ? `+ ${compedProjects} free` : undefined}
+        />
         <StatCard
           label="Est. revenue"
           value={`£${estRevenue.toLocaleString("en-GB")}`}
@@ -128,6 +149,28 @@ export default async function AdminPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Projects — grant free access */}
+      <h2 className="mt-12 font-serif text-xl font-semibold text-navy-900">
+        Recent projects
+      </h2>
+      <p className="mt-1 text-sm text-navy-600">
+        &ldquo;Grant free&rdquo; unlocks a customer&rsquo;s documents at no charge. To
+        hand out a code instead, create a 100%-off promotion code in Stripe —
+        customers can enter it on the checkout page.
+      </p>
+      <div className="mt-4">
+        <AdminProjects
+          projects={recentProjects.map((p) => ({
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            paymentStatus: p.paymentStatus,
+            createdAt: p.createdAt.toISOString(),
+            userEmail: p.user.email,
+          }))}
+        />
       </div>
 
       {/* Consultation leads */}

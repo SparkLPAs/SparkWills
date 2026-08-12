@@ -108,7 +108,8 @@ model WillProject {
   data Json
 
   // Payment
-  paymentStatus         String  @default("unpaid") // unpaid | paid
+  // comped = granted at zero price (100%-off promo code, or an admin grant).
+  paymentStatus         String  @default("unpaid") // unpaid | paid | comped
   stripePaymentIntentId String?
   stripeSessionId       String?
 

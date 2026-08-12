@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TOTAL_SECTIONS } from "@/lib/wizard/schema";
+import { grantsAccess } from "@/lib/constants";
 
 interface ProjectSummary {
   id: string;
@@ -57,12 +58,16 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         </div>
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            project.paymentStatus === "paid"
+            grantsAccess(project.paymentStatus)
               ? "bg-green-100 text-success"
               : "bg-cream-200 text-navy-600"
           }`}
         >
-          {project.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+          {project.paymentStatus === "comped"
+            ? "Free"
+            : project.paymentStatus === "paid"
+              ? "Paid"
+              : "Unpaid"}
         </span>
       </div>
 
