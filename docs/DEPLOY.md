@@ -47,7 +47,7 @@ In Vercel (Project → Settings → Environment Variables), set:
 **Connected later** (leave blank until ready)
 | Capability | Vars |
 |---|---|
-| Stripe | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_SINGLE/ANNUAL` (+ `NEXT_PUBLIC_` copies) |
+| Stripe | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_SINGLE`, `STRIPE_PRICE_ID_MIRROR` (+ `NEXT_PUBLIC_` copies of both), `STRIPE_PRICE_ID_STORAGE` (no `NEXT_PUBLIC_` copy needed — server-only) |
 | Email | `RESEND_API_KEY`, `EMAIL_FROM` (verified sender domain) |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (optional) |
 
