@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { getSessionUser } from "@/lib/auth/session";
+import { isLikelySpam } from "@/lib/spam-check";
 
 const Schema = z.object({
   name: z.string().min(1, "Please enter your name").max(120),
@@ -13,6 +14,16 @@ const Schema = z.object({
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
+
+  // Checked before real validation, on the raw body — honeypot/renderedAt
+  // aren't part of Schema, they're spam signals only. A fake "success"
+  // response (no DB row, no CRM push) avoids tipping a bot off that it
+  // was filtered.
+  if (body && isLikelySpam(body)) {
+    console.log("[consultation] Blocked a likely-spam submission");
+    return NextResponse.json({ ok: true });
+  }
+
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

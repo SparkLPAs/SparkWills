@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export function ConsultationForm({ source }: { source?: string }) {
   const [name, setName] = useState("");
@@ -10,6 +10,10 @@ export function ConsultationForm({ source }: { source?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  // Spam signals only — not part of the real submission data. See
+  // lib/spam-check.ts for how the server uses these.
+  const honeypotRef = useRef<HTMLInputElement>(null);
+  const renderedAtRef = useRef(Date.now());
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,7 +22,15 @@ export function ConsultationForm({ source }: { source?: string }) {
     const res = await fetch("/api/consultation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, phone, message, source }),
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        message,
+        source,
+        honeypot: honeypotRef.current?.value ?? "",
+        renderedAt: renderedAtRef.current,
+      }),
     });
     setLoading(false);
     if (!res.ok) {
@@ -49,6 +61,22 @@ export function ConsultationForm({ source }: { source?: string }) {
 
   return (
     <form onSubmit={onSubmit} className="card space-y-4 p-6">
+      {/* Honeypot — invisible to real visitors, off-screen rather than
+          display:none so it still exists in the DOM for bots that check
+          computed visibility. See lib/spam-check.ts. */}
+      <div className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden">
+        <label htmlFor="c-website">Leave this field blank</label>
+        <input
+          ref={honeypotRef}
+          id="c-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+      </div>
+
       <div>
         <label htmlFor="c-name" className="block text-sm font-medium text-navy-800">
           Your name
