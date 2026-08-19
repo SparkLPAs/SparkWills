@@ -42,7 +42,7 @@ export async function GET(
 
   let n = 1;
   for (const type of documentsForProject(data)) {
-    const bytes = await generateDocument(type, { data, compiledDate });
+    const bytes = await generateDocument(type, { data, compiledDate, projectId: params.id });
     const name = `${String(n).padStart(2, "0")} ${documentLabel(type, data)}.pdf`;
     zip.file(name, bytes);
     n++;

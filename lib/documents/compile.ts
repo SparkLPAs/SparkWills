@@ -44,6 +44,7 @@ export async function compileProject(projectId: string) {
     const bytes = await generateDocument(type as DocumentType, {
       data,
       compiledDate,
+      projectId,
     });
     const key = `${projectId}/v${version}/${type}.pdf`;
     const { checksum } = await putObject(key, bytes);
