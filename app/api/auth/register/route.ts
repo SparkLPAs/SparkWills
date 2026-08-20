@@ -42,8 +42,12 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await hashPassword(parsed.data.password);
   const name = parsed.data.name?.trim() || null;
+  // SparkLegal partner attribution (Aug 2026) — set by middleware.ts on
+  // first landing via ?ref=<code>, read here at the moment the account
+  // itself is actually created.
+  const referralCode = req.cookies.get("spark_ref")?.value || null;
   await prisma.user.create({
-    data: { email, name, passwordHash, plan: "free" },
+    data: { email, name, passwordHash, plan: "free", referralCode },
   });
 
   await sendEmail(welcomeEmail(email, name ?? undefined));
