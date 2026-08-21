@@ -5,9 +5,17 @@ export const dynamic = "force-dynamic";
 
 /**
  * SparkLegal partner attribution (Aug 2026) — per-referral-code stats for
- * spark-partner-dashboard's Will Bank Value calculation. Only paid projects
- * count (matches app/admin/page.tsx's own "paidProjects" definition);
- * executor choice lives inside WillProject.data (a Json blob, not its own
+ * spark-partner-dashboard's Will Bank Value calculation.
+ *
+ * Counts COMPLETED projects, not paid ones — a SparkLegal partner account
+ * uses this product free (see lib/sparklegal.ts / User.sparkLegalFreeAccess),
+ * so paymentStatus is structurally never "paid" for them; counting paid
+ * projects here would always return zero regardless of how much real work
+ * a partner has done. "Completed" means the documents were actually
+ * generated (status compiled/executed/stored), which is the real signal of
+ * a genuine case, free or paid.
+ *
+ * Executor choice lives inside WillProject.data (a Json blob, not its own
  * column), so it's read from each row rather than queried via a DB-level
  * filter — the per-partner dataset size is small enough that this is fine.
  *
@@ -27,18 +35,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing ref" }, { status: 400 });
   }
 
-  const paidProjects = await prisma.willProject.findMany({
-    where: { paymentStatus: "paid", user: { referralCode: ref } },
+  const completedProjects = await prisma.willProject.findMany({
+    where: { status: { in: ["compiled", "executed", "stored"] }, user: { referralCode: ref } },
     select: { data: true },
   });
 
-  const recommendedExecutorProjects = paidProjects.filter(
+  const recommendedExecutorProjects = completedProjects.filter(
     (p) => (p.data as { executorChoice?: string } | null)?.executorChoice === "recommended",
   ).length;
 
   return NextResponse.json({
     ref,
-    paidProjects: paidProjects.length,
+    completedProjects: completedProjects.length,
     recommendedExecutorProjects,
   });
 }
