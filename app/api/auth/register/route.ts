@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { sendEmail } from "@/lib/email/email";
 import { welcomeEmail } from "@/lib/email/templates";
+import { verifySparkLegalReferralCode } from "@/lib/sparklegal";
 
 const RegisterSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -44,10 +45,13 @@ export async function POST(req: NextRequest) {
   const name = parsed.data.name?.trim() || null;
   // SparkLegal partner attribution (Aug 2026) — set by middleware.ts on
   // first landing via ?ref=<code>, read here at the moment the account
-  // itself is actually created.
+  // itself is actually created. Free access is only granted once that
+  // code is verified live against spark-partner-dashboard — never on the
+  // cookie value alone.
   const referralCode = req.cookies.get("spark_ref")?.value || null;
+  const sparkLegalFreeAccess = referralCode ? await verifySparkLegalReferralCode(referralCode) : false;
   await prisma.user.create({
-    data: { email, name, passwordHash, plan: "free", referralCode },
+    data: { email, name, passwordHash, plan: "free", referralCode, sparkLegalFreeAccess },
   });
 
   await sendEmail(welcomeEmail(email, name ?? undefined));

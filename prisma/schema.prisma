@@ -44,6 +44,17 @@ model User {
   // dashboard auto-generates when a partner enables SparkLegal.
   referralCode String?
 
+  // Confirmed by the business owner (Aug 2026): a SparkLegal partner uses
+  // this product completely free — the platform fee is the owner's entire
+  // revenue from that partner, same model as WillSuite. Set ONCE at
+  // registration, only after verifying referralCode against
+  // spark-partner-dashboard's own live subscription status (see
+  // app/api/auth/register) — never trust referralCode alone, since anyone
+  // could pass an arbitrary ?ref= value. Deliberately not re-verified on
+  // every access check afterward (a partner's later cancellation doesn't
+  // retroactively lock an already-registered account out).
+  sparkLegalFreeAccess Boolean @default(false)
+
   projects WillProject[]
   accounts Account[]
   sessions Session[]
