@@ -47,8 +47,21 @@ export const DOCUMENT_TYPES = [
   "cover_sheet",
   "signing_guide",
   "storage_guide",
+  "storage_insert",
 ] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+// Identifies which underlying platform/template generated a document — kept
+// separate from siteConfig.business.name, which is the specific white-label
+// partner's own brand (and changes per client deployment; for this flagship
+// deployment it's the same value, "SparkWills", but won't be once a partner
+// clone exists). Printed on the storage insert (see
+// lib/pdf-generation/templates.ts -> storageInsertBlocks) so staff filing or
+// retrieving physical wills received from multiple sources/partners can
+// identify which system a given document came from at a glance. Business
+// owner's explicit ask, Aug 2026 — matches the same Source/Partner split
+// used on Online-Wills.co.uk's own storage records.
+export const DOCUMENT_SOURCE = "SparkWills";
 
 // ─── Pricing (display only — real amounts come from Stripe / site.config) ───
 

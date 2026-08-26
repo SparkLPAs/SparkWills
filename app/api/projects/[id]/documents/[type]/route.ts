@@ -49,7 +49,11 @@ export async function GET(
     );
   }
 
-  const bytes = await generateDocument(type, { data, compiledDate: gbDate() });
+  const bytes = await generateDocument(type, {
+    data,
+    compiledDate: gbDate(),
+    projectId: params.id,
+  });
   const filename = `${documentLabel(type, data).replace(/[^a-z0-9]+/gi, "-")}.pdf`;
 
   return new NextResponse(bytes as BodyInit, {

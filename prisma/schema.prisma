@@ -37,6 +37,24 @@ model User {
   // Admin access (set via scripts/set-admin.mjs)
   isAdmin          Boolean   @default(false)
 
+  // SparkLegal partner attribution (Aug 2026) — captured from a ?ref=<code>
+  // param at first landing (see middleware.ts), read here at registration.
+  // Set once, never overwritten — this is the partner whose referral link
+  // this customer first arrived through, the same code spark-partner-
+  // dashboard auto-generates when a partner enables SparkLegal.
+  referralCode String?
+
+  // Confirmed by the business owner (Aug 2026): a SparkLegal partner uses
+  // this product completely free — the platform fee is the owner's entire
+  // revenue from that partner, same model as WillSuite. Set ONCE at
+  // registration, only after verifying referralCode against
+  // spark-partner-dashboard's own live subscription status (see
+  // app/api/auth/register) — never trust referralCode alone, since anyone
+  // could pass an arbitrary ?ref= value. Deliberately not re-verified on
+  // every access check afterward (a partner's later cancellation doesn't
+  // retroactively lock an already-registered account out).
+  sparkLegalFreeAccess Boolean @default(false)
+
   projects WillProject[]
   accounts Account[]
   sessions Session[]
