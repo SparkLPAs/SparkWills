@@ -25,11 +25,11 @@ export default function EligibilityPage() {
     <div className="mx-auto max-w-2xl px-6 py-14">
       <p className="text-sm font-medium text-navy-600">Step 1 of 7 · Eligibility</p>
       <h1 className="mt-2 font-serif text-3xl font-bold text-navy-900">
-        Is a Protective Property Trust Will right for you?
+        Is a simple online will right for you?
       </h1>
       <p className="mt-3 text-navy-700">
-        Answer these four questions about you and your partner. They confirm the
-        structure suits your circumstances before you spend any time on it.
+        Answer these four questions. They confirm a DIY will suits your
+        circumstances before you spend any time on it.
       </p>
 
       <div className="mt-8 space-y-4">
@@ -81,8 +81,8 @@ export default function EligibilityPage() {
             This tool may not be the right fit
           </h2>
           <p className="mt-2 text-sm text-navy-700">
-            Based on your answers, a DIY Protective Property Trust Will may not
-            suit your circumstances. {CONSULTATION_SIGNPOST}
+            Based on your answers, a DIY simple online will may not suit your
+            circumstances. {CONSULTATION_SIGNPOST}
           </p>
           <Link href="/consultation?source=eligibility" className="btn-primary mt-4">
             Get in touch for an expert consultation
@@ -96,8 +96,8 @@ export default function EligibilityPage() {
             You&apos;re eligible to continue
           </h2>
           <p className="mt-2 text-sm text-navy-700">
-            A Protective Property Trust Will looks like a good fit. Create an
-            account to start the guided wizard — your progress saves as you go.
+            A simple online will looks like a good fit. Create an account to
+            start the guided wizard — your progress saves as you go.
           </p>
           <Link href="/register" className="btn-primary mt-4">
             Create your account
