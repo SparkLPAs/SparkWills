@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ELIGIBILITY_QUESTIONS,
   CONSULTATION_SIGNPOST,
   JURISDICTION,
 } from "@/lib/constants";
+import { ELIGIBILITY_STORAGE_KEY } from "@/lib/eligibility-storage";
 
 type Answers = Record<string, boolean | undefined>;
 
@@ -20,6 +21,19 @@ export default function EligibilityPage() {
     (q) => answers[q.id] !== undefined,
   );
   const passed = allAnswered && failed.length === 0;
+
+  useEffect(() => {
+    if (!passed) return;
+    try {
+      sessionStorage.setItem(
+        ELIGIBILITY_STORAGE_KEY,
+        JSON.stringify({ answers, confirmedAt: new Date().toISOString() }),
+      );
+    } catch {
+      // Private browsing / storage disabled — registration just proceeds
+      // without a persisted eligibility record.
+    }
+  }, [passed, answers]);
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-14">

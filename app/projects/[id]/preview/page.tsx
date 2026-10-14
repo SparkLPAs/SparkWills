@@ -1,8 +1,8 @@
 import { redirect, notFound } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { hydrateWizardData } from "@/lib/wizard/schema";
-import { summariseChecks } from "@/lib/validation/document-checks";
+import { summariseChecks, type EligibilityAnswers } from "@/lib/validation/document-checks";
 import { documentsForProject, documentLabel } from "@/lib/pdf-generation/templates";
 import { siteConfig } from "@/config/site.config";
 import { ProofPanel } from "@/components/proof/ProofPanel";
@@ -14,7 +14,7 @@ export default async function PreviewPage({
 }: {
   params: { id: string };
 }) {
-  const user = await getSessionUser();
+  const user = await getCurrentUser();
   if (!user) redirect(`/login?callbackUrl=/projects/${params.id}/preview`);
 
   const project = await prisma.willProject.findUnique({
@@ -23,7 +23,7 @@ export default async function PreviewPage({
   if (!project || project.userId !== user.id) notFound();
 
   const data = hydrateWizardData(project.data);
-  const summary = summariseChecks(data);
+  const summary = summariseChecks(data, user.eligibilityAnswers as EligibilityAnswers);
 
   // Only the document LABELS are sent to the browser pre-payment — never the
   // document content (that would let someone copy it without paying).
