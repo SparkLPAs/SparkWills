@@ -13,6 +13,15 @@ const RegisterSchema = z.object({
     .min(8, "Password must be at least 8 characters")
     .max(200),
   name: z.string().max(120).optional(),
+  // Carried over from app/eligibility via sessionStorage (see
+  // ELIGIBILITY_STORAGE_KEY) — optional because it's only present when
+  // registration followed straight on from a passed eligibility check.
+  eligibilityAnswers: z
+    .object({
+      answers: z.record(z.string(), z.boolean()),
+      confirmedAt: z.string(),
+    })
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -50,8 +59,18 @@ export async function POST(req: NextRequest) {
   // cookie value alone.
   const referralCode = req.cookies.get("spark_ref")?.value || null;
   const sparkLegalFreeAccess = referralCode ? await verifySparkLegalReferralCode(referralCode) : false;
+  const eligibility = parsed.data.eligibilityAnswers;
   await prisma.user.create({
-    data: { email, name, passwordHash, plan: "free", referralCode, sparkLegalFreeAccess },
+    data: {
+      email,
+      name,
+      passwordHash,
+      plan: "free",
+      referralCode,
+      sparkLegalFreeAccess,
+      eligibilityAnswers: eligibility?.answers,
+      eligibilityConfirmedAt: eligibility ? new Date(eligibility.confirmedAt) : null,
+    },
   });
 
   await sendEmail(welcomeEmail(email, name ?? undefined));

@@ -37,6 +37,14 @@ model User {
   // Admin access (set via scripts/set-admin.mjs)
   isAdmin          Boolean   @default(false)
 
+  // Self-certified at the eligibility gate (app/eligibility), before the
+  // account existed — carried through registration (see
+  // app/api/auth/register) so there's a dated record of what was
+  // confirmed, not just a one-off UI click with no trace. Set once, never
+  // overwritten.
+  eligibilityAnswers    Json?
+  eligibilityConfirmedAt DateTime?
+
   // SparkLegal partner attribution (Aug 2026) — captured from a ?ref=<code>
   // param at first landing (see middleware.ts), read here at registration.
   // Set once, never overwritten — this is the partner whose referral link

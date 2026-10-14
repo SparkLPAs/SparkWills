@@ -11,11 +11,26 @@ export interface CheckResult {
   detail?: string;
 }
 
+function isUnder18(dateOfBirth: string): boolean {
+  if (!dateOfBirth) return false;
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) return false;
+  const age = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+  return age < 18;
+}
+
+/** What was self-certified at the eligibility gate (app/eligibility), before
+ *  any of this wizard data existed — see User.eligibilityAnswers. */
+export type EligibilityAnswers = Record<string, boolean> | null | undefined;
+
 /**
  * Runs the validation checks for a straightforward will.
  * Red = blocks compile; Amber = warning only.
  */
-export function runDocumentChecks(data: WizardData): CheckResult[] {
+export function runDocumentChecks(
+  data: WizardData,
+  eligibilityAnswers?: EligibilityAnswers,
+): CheckResult[] {
   const checks: CheckResult[] = [];
   const isMirror = data.willType === "mirror";
   const useRecommended =
@@ -117,7 +132,39 @@ export function runDocumentChecks(data: WizardData): CheckResult[] {
     "You indicated you have minor children — appoint at least one guardian.",
   );
 
+  // Age contradicts the "18 or over" self-certified at eligibility — a
+  // person's actual date of birth is only entered here, in the wizard, so
+  // this is the first point it can actually be checked against what was
+  // confirmed with a single click, weeks earlier, before any name or DOB
+  // was known. A will made under 18 isn't valid (Wills Act 1837), so this
+  // blocks compile rather than just warning.
+  add(
+    "ageConsistency",
+    "Date of birth confirms you're both 18 or over",
+    "red",
+    !isUnder18(data.person1.dateOfBirth) &&
+      (!isMirror || !isUnder18(data.person2.dateOfBirth)),
+    eligibilityAnswers?.ageOver18 === true
+      ? "The date of birth entered shows one of you is under 18. You must be 18 or over to make a valid will in England & Wales (Wills Act 1837) — this doesn't match the eligibility check you confirmed earlier."
+      : "You must be 18 or over to make a valid will in England & Wales (Wills Act 1837). The date of birth entered shows one of you is under 18.",
+  );
+
   // ── Amber (warnings) ──
+
+  // "No trusts" was self-certified at eligibility, before any beneficiary
+  // was named. A gift to a minor is automatically held in trust until the
+  // vesting age — if one's since been named, flag the contradiction rather
+  // than silently proceeding on an eligibility answer that no longer holds.
+  if (eligibilityAnswers?.straightforward === true) {
+    add(
+      "eligibilityTrustContradiction",
+      "Still a straightforward estate with no trusts",
+      "amber",
+      !hasMinorBeneficiary,
+      "You confirmed a straightforward estate with no trusts at the eligibility check, but you've named a beneficiary under 18 — gifts to minors are automatically held in trust until the vesting age. You can still proceed, but if your circumstances turned out more complex than you first thought, consider getting advice before relying on a DIY will.",
+    );
+  }
+
   add(
     "beneficiaryAsWitness",
     "Reminder: beneficiaries must not witness the will",
@@ -144,8 +191,11 @@ export interface ProofSummary {
   canCompile: boolean;
 }
 
-export function summariseChecks(data: WizardData): ProofSummary {
-  const checks = runDocumentChecks(data);
+export function summariseChecks(
+  data: WizardData,
+  eligibilityAnswers?: EligibilityAnswers,
+): ProofSummary {
+  const checks = runDocumentChecks(data, eligibilityAnswers);
   const reds = checks.filter((c) => c.severity === "red");
   const redFailures = reds.filter((c) => !c.passed);
   const amberFailures = checks.filter(

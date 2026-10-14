@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ELIGIBILITY_STORAGE_KEY } from "@/lib/eligibility-storage";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -17,10 +18,19 @@ export function RegisterForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    let eligibilityAnswers;
+    try {
+      const raw = sessionStorage.getItem(ELIGIBILITY_STORAGE_KEY);
+      eligibilityAnswers = raw ? JSON.parse(raw) : undefined;
+    } catch {
+      eligibilityAnswers = undefined;
+    }
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, eligibilityAnswers }),
     });
 
     if (!res.ok) {
@@ -28,6 +38,12 @@ export function RegisterForm() {
       setError(data.error ?? "Something went wrong. Please try again.");
       setLoading(false);
       return;
+    }
+
+    try {
+      sessionStorage.removeItem(ELIGIBILITY_STORAGE_KEY);
+    } catch {
+      // ignore
     }
 
     // Auto sign-in after successful registration.
