@@ -1,10 +1,11 @@
 import { redirect, notFound } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
 import { userCanAccessProject } from "@/lib/payments/check-access";
 import { stripeConfigured } from "@/lib/stripe/stripe-server";
 import { getDisplayPrices } from "@/lib/stripe/prices";
 import { hydrateWizardData } from "@/lib/wizard/schema";
+import { getSparkLegalRouting } from "@/lib/sparklegal";
 import { PaymentGate } from "@/components/payments/PaymentGate";
 
 export const metadata = { title: "Unlock your documents" };
@@ -14,7 +15,7 @@ export default async function PaymentPage({
 }: {
   params: { id: string };
 }) {
-  const user = await getSessionUser();
+  const user = await getCurrentUser();
   if (!user) redirect(`/login?callbackUrl=/projects/${params.id}/payment`);
 
   const project = await prisma.willProject.findUnique({
@@ -25,6 +26,22 @@ export default async function PaymentPage({
   // Already entitled → straight to download.
   if (await userCanAccessProject(user.id, project.id)) {
     redirect(`/projects/${project.id}/download`);
+  }
+
+  // A SparkLegal partner's referred client, where that partner has chosen
+  // NOT to charge for SparkWills (toggle off — either they collect payment
+  // themselves, or they're giving it away). Checked live, not cached, since
+  // the partner's choice can change at any time; this is the one moment it's
+  // decided and persisted for this project.
+  if (user.referralCode) {
+    const routing = await getSparkLegalRouting(user.referralCode);
+    if (routing.subscribed && !routing.paymentEnabled) {
+      await prisma.willProject.update({
+        where: { id: project.id },
+        data: { paymentStatus: "paid" },
+      });
+      redirect(`/projects/${project.id}/download`);
+    }
   }
 
   const prices = await getDisplayPrices();
