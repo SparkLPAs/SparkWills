@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       ],
       success_url: `${process.env.NEXTAUTH_URL}/projects/${projectId}/download?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXTAUTH_URL}/projects/${projectId}/preview?cancelled=true`,
-      metadata: { userId: user.id, projectId: projectId || "", planType, storageRequested: "false" },
+      metadata: { userId: user.id, projectId: projectId || "", planType, storageRequested: "false", product: "wills" },
       payment_intent_data: { transfer_data: { destination: routing.connectedAccountId } },
       billing_address_collection: "auto",
     });
