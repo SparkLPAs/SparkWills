@@ -9,6 +9,7 @@ import { compileProject } from "@/lib/documents/compile";
 import { DisclaimerBanner } from "@/components/ui/DisclaimerBanner";
 import { siteConfig } from "@/config/site.config";
 import { getStripe, stripeConfigured } from "@/lib/stripe/stripe-server";
+import { getSparkLegalStripe, sparkLegalStripeConfigured } from "@/lib/stripe/sparklegal-stripe";
 
 export const metadata = { title: "Download your wills" };
 
@@ -29,15 +30,27 @@ export default async function DownloadPage({
 
   // Returning from Stripe Checkout: verify the session and mark the order paid
   // (a safety net alongside the webhook, so the success redirect is self-sufficient).
-  if (
-    searchParams.session_id &&
-    stripeConfigured &&
-    project.paymentStatus !== "paid"
-  ) {
-    try {
-      const s = await getStripe().checkout.sessions.retrieve(
-        searchParams.session_id,
-      );
+  // A SparkLegal partner-routed payment is a session on a completely different
+  // Stripe account (see create-checkout-session) — session IDs are account-
+  // scoped, so retrieving on the wrong account just fails harmlessly; try
+  // SparkWills' own account first (the common case), then SparkLegal's.
+  if (searchParams.session_id && project.paymentStatus !== "paid") {
+    let s = null;
+    if (stripeConfigured) {
+      try {
+        s = await getStripe().checkout.sessions.retrieve(searchParams.session_id);
+      } catch {
+        // not a SparkWills-account session — fall through and try SparkLegal's
+      }
+    }
+    if (!s && sparkLegalStripeConfigured) {
+      try {
+        s = await getSparkLegalStripe().checkout.sessions.retrieve(searchParams.session_id);
+      } catch {
+        // ignore — fall through to the access check below
+      }
+    }
+    if (s) {
       const paid = s.payment_status === "paid" || s.status === "complete";
       if (paid && s.metadata?.projectId === project.id) {
         project = await prisma.willProject.update({
@@ -49,8 +62,6 @@ export default async function DownloadPage({
           },
         });
       }
-    } catch {
-      // ignore — fall through to the access check below
     }
   }
 

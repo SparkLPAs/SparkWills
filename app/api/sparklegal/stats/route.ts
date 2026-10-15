@@ -7,13 +7,12 @@ export const dynamic = "force-dynamic";
  * SparkLegal partner attribution (Aug 2026) — per-referral-code stats for
  * spark-partner-dashboard's Will Bank Value calculation.
  *
- * Counts COMPLETED projects, not paid ones — a SparkLegal partner account
- * uses this product free (see lib/sparklegal.ts / User.sparkLegalFreeAccess),
- * so paymentStatus is structurally never "paid" for them; counting paid
- * projects here would always return zero regardless of how much real work
- * a partner has done. "Completed" means the documents were actually
- * generated (status compiled/executed/stored), which is the real signal of
- * a genuine case, free or paid.
+ * Counts COMPLETED projects, not paid ones — whether a SparkLegal partner's
+ * client paid depends on that partner's own per-product toggle (see
+ * lib/sparklegal.ts), which this stats endpoint has no reason to care
+ * about. "Completed" means the documents were actually generated (status
+ * compiled/executed/stored), which is the real signal of a genuine case,
+ * free or paid.
  *
  * Executor choice lives inside WillProject.data (a Json blob, not its own
  * column), so it's read from each row rather than queried via a DB-level

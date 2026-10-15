@@ -2,9 +2,11 @@ import { prisma } from "@/lib/db/prisma";
 
 /**
  * Whether the user may access the compiled documents for a project.
- * Annual-plan users get all projects; SparkLegal partner accounts (verified
- * free access, see app/api/auth/register) get all their own projects free;
- * otherwise the specific project must be paid.
+ * Annual-plan users get all projects; otherwise the specific project must
+ * be paid. A project a SparkLegal partner gave away free is marked paid
+ * directly at the point that was decided (see app/projects/[id]/payment) —
+ * there's no separate standing "free account" flag to check here, since a
+ * partner's payment choice can change at any time and shouldn't be cached.
  */
 export async function userCanAccessProject(
   userId: string,
@@ -22,8 +24,6 @@ export async function userCanAccessProject(
     where: { id: projectId },
   });
   if (!project || project.userId !== userId) return false;
-
-  if (user.sparkLegalFreeAccess) return true;
 
   return project.paymentStatus === "paid";
 }
