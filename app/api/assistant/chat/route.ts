@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-5-5",
+        model: "claude-haiku-5-5",
         max_tokens: 1024,
         // Low effort: this is a short, friendly FAQ-style reply, not a
         // reasoning task — keeps thinking overhead out of the response.
