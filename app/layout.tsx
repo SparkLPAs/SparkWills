@@ -8,6 +8,7 @@ import { brandThemeCss } from "@/config/theme";
 import { Providers } from "@/components/providers/Providers";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteAssistant } from "@/components/assistant/SiteAssistant";
 
 const display = Playfair_Display({
   subsets: ["latin"],
@@ -43,6 +44,7 @@ export default function RootLayout({
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
+          <SiteAssistant />
         </Providers>
       </body>
     </html>
