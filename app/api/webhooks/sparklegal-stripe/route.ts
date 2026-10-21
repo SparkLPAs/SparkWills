@@ -72,6 +72,11 @@ export async function POST(req: NextRequest) {
             paymentStatus: "paid",
             stripeSessionId: session.id,
             storageRequested: false, // not offered on the partner-routed path
+            // This webhook only ever fires for a genuine destination-charge
+            // payment on the partner's connected account — see this file's
+            // top comment — so amount_total here is real partner revenue.
+            sparkLegalAmountPaidPence: session.amount_total ?? 0,
+            sparkLegalPaidAt: new Date(),
           },
         });
         if (userId) {

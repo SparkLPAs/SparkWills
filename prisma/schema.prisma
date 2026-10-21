@@ -138,6 +138,17 @@ model WillProject {
   stripePaymentIntentId String?
   stripeSessionId       String?
 
+  // Real money actually collected via a SparkLegal partner-routed
+  // destination charge (pence, GBP) — null unless this specific project was
+  // paid for through that path. Deliberately separate from paymentStatus,
+  // which alone can't distinguish "paid the partner's connected account"
+  // from "paid SparkWills directly" or "given away free by the partner" —
+  // only this path represents a partner's real, reportable revenue. Powers
+  // spark-partner-dashboard's SparkLegal revenue figure (see
+  // app/api/sparklegal/stats and app/api/webhooks/sparklegal-stripe).
+  sparkLegalAmountPaidPence Int?
+  sparkLegalPaidAt         DateTime?
+
   // Optional paid storage add-on
   storageRequested Boolean @default(false)
 

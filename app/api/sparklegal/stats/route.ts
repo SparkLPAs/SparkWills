@@ -43,9 +43,26 @@ export async function GET(req: NextRequest) {
     (p) => (p.data as { executorChoice?: string } | null)?.executorChoice === "recommended",
   ).length;
 
+  // Real revenue, not Will Bank Value — only projects actually paid for via
+  // this partner's connected Stripe account (sparkLegalPaidAt is only ever
+  // set on that specific path; see app/api/webhooks/sparklegal-stripe and
+  // app/projects/[id]/download). Calendar-month-to-date, UTC.
+  const now = new Date();
+  const firstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const paidThisMonth = await prisma.willProject.findMany({
+    where: { sparkLegalPaidAt: { gte: firstOfMonth }, user: { referralCode: ref } },
+    select: { sparkLegalAmountPaidPence: true },
+  });
+  const revenueThisMonthPence = paidThisMonth.reduce(
+    (sum, p) => sum + (p.sparkLegalAmountPaidPence ?? 0),
+    0,
+  );
+
   return NextResponse.json({
     ref,
     completedProjects: completedProjects.length,
     recommendedExecutorProjects,
+    revenueThisMonthPence,
+    revenueThisMonthCount: paidThisMonth.length,
   });
 }
