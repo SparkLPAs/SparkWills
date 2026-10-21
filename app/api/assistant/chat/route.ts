@@ -31,20 +31,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5-5",
-      max_tokens: 400,
-      system: buildAssistantSystemPrompt(),
-      messages: parsed.data.messages,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5-5",
+        max_tokens: 1024,
+        // Low effort: this is a short, friendly FAQ-style reply, not a
+        // reasoning task — keeps thinking overhead out of the response.
+        output_config: { effort: "low" },
+        system: buildAssistantSystemPrompt(),
+        messages: parsed.data.messages,
+      }),
+    });
+  } catch (err) {
+    console.error("[assistant] Fetch to Anthropic failed:", err);
+    return NextResponse.json(
+      { error: "The assistant is temporarily unavailable." },
+      { status: 502 },
+    );
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
@@ -56,7 +68,15 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await response.json();
-  const reply = data.content?.[0]?.type === "text" ? data.content[0].text : "";
+  // Thinking may put a non-text block first — find the actual text reply
+  // rather than assuming content[0] is it.
+  const textBlock = Array.isArray(data.content)
+    ? data.content.find((b: { type: string; text?: string }) => b.type === "text")
+    : null;
+  const reply = textBlock?.text ?? "";
+  if (!reply) {
+    console.error("[assistant] No text block in Anthropic response:", JSON.stringify(data));
+  }
 
   return NextResponse.json({ reply });
 }
