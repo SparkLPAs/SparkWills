@@ -36,6 +36,7 @@ export default async function DownloadPage({
   // SparkWills' own account first (the common case), then SparkLegal's.
   if (searchParams.session_id && project.paymentStatus !== "paid") {
     let s = null;
+    let viaSparkLegal = false;
     if (stripeConfigured) {
       try {
         s = await getStripe().checkout.sessions.retrieve(searchParams.session_id);
@@ -46,6 +47,7 @@ export default async function DownloadPage({
     if (!s && sparkLegalStripeConfigured) {
       try {
         s = await getSparkLegalStripe().checkout.sessions.retrieve(searchParams.session_id);
+        viaSparkLegal = true;
       } catch {
         // ignore — fall through to the access check below
       }
@@ -59,6 +61,13 @@ export default async function DownloadPage({
             paymentStatus: "paid",
             stripeSessionId: s.id,
             storageRequested: s.metadata?.storageRequested === "true",
+            // Safety net alongside the sparklegal-stripe webhook — only
+            // record this as partner revenue when the session genuinely
+            // retrieved from the SparkLegal account (viaSparkLegal), not
+            // SparkWills' own account.
+            ...(viaSparkLegal
+              ? { sparkLegalAmountPaidPence: s.amount_total ?? 0, sparkLegalPaidAt: new Date() }
+              : {}),
           },
         });
       }
