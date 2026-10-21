@@ -8,6 +8,13 @@ import { siteConfig } from "@/config/site.config";
 // authenticated app actually creating their documents.
 const HIDDEN_PREFIXES = ["/dashboard", "/projects", "/account", "/admin", "/login", "/register"];
 
+const SUGGESTIONS = [
+  "What does this cost?",
+  "Am I eligible?",
+  "How long does it take?",
+  "Can someone call me instead?",
+];
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export function SiteAssistant() {
@@ -28,8 +35,7 @@ export function SiteAssistant() {
     return null;
   }
 
-  async function send() {
-    const text = input.trim();
+  async function sendText(text: string) {
     if (!text || sending) return;
     const next: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(next);
@@ -82,40 +88,62 @@ export function SiteAssistant() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {open && (
-        <div className="flex h-[32rem] w-80 flex-col overflow-hidden rounded-xl border border-cream-300 bg-white shadow-card sm:w-96">
-          <div className="flex items-center justify-between border-b border-cream-300 bg-navy-800 px-4 py-3">
-            <span className="font-serif text-sm font-semibold text-white">
-              Ask about {siteConfig.business.shortName}
-            </span>
+        <div className="flex h-[34rem] w-80 flex-col overflow-hidden rounded-xl border border-cream-300 bg-white shadow-card sm:w-96">
+          <div className="flex items-center gap-3 border-b border-cream-300 bg-navy-800 px-4 py-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-base text-white">
+              ✦
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-serif text-sm font-semibold text-white">
+                {siteConfig.business.shortName} Assistant
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-white/85">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                AI assistant · replies in seconds
+              </div>
+            </div>
             <button
               onClick={() => setOpen(false)}
               aria-label="Close chat"
-              className="text-white/80 hover:text-white"
+              className="text-lg text-white/80 hover:text-white"
             >
               ✕
             </button>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
-            {messages.length === 0 && (
+            {messages.length === 0 ? (
               <p className="text-sm text-navy-700">
                 Hi — ask me anything about pricing, how it works, or whether{" "}
                 {siteConfig.business.shortName} is right for you.
               </p>
+            ) : (
+              messages.map((m, i) => (
+                <div
+                  key={i}
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    m.role === "user"
+                      ? "ml-auto bg-navy-700 text-white"
+                      : "bg-cream-100 text-navy-800"
+                  }`}
+                >
+                  {m.content}
+                </div>
+              ))
             )}
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
-                  m.role === "user"
-                    ? "ml-auto bg-navy-700 text-white"
-                    : "bg-cream-100 text-navy-800"
-                }`}
-              >
-                {m.content}
-              </div>
-            ))}
             {sending && <p className="text-sm text-navy-500">Typing…</p>}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {SUGGESTIONS.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => sendText(q)}
+                  disabled={sending}
+                  className="rounded-full border border-navy-700 px-3 py-1.5 text-xs text-navy-700 hover:bg-cream-100"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2 border-t border-cream-300 px-4 py-3">
@@ -156,15 +184,21 @@ export function SiteAssistant() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder="Type a question…"
+                onKeyDown={(e) => e.key === "Enter" && sendText(input.trim())}
+                placeholder={`Ask about ${siteConfig.business.shortName}…`}
                 maxLength={2000}
                 className="flex-1 rounded border border-cream-300 px-3 py-2 text-sm"
               />
-              <button onClick={send} disabled={sending} className="btn-primary text-sm">
+              <button onClick={() => sendText(input.trim())} disabled={sending} className="btn-primary text-sm">
                 Send
               </button>
             </div>
+            <p className="text-center text-[10px] text-navy-500">
+              AI can make mistakes. Please don&apos;t share sensitive personal data.{" "}
+              <a href="/privacy" className="underline">
+                Privacy
+              </a>
+            </p>
           </div>
         </div>
       )}
